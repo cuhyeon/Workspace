@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Document</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+
+    <!-- jquery ui -->
+    <link
+      rel="stylesheet"
+      href="http://code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"
+    />
+    <link
+      rel="stylesheet"
+      href="//code.jquery.com/ui/1.12.1/themes/flick/jquery-ui.css"
+    />
+    <!-- <link rel="stylesheet" href="/resources/demos/style.css"> -->
+    <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+    <script src="http://code.jquery.com/ui/1.11.4/jquery-ui.min.js"></script>
+
+    <!-- jQuery UI 국제화 대응을 위한 라이브러리 (다국어) -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/i18n/jquery-ui-i18n.min.js"></script>
+
+    <!-- datepicker 한국어로 -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.11.4/i18n/datepicker-ko.js"></script>
+
+    <!-- line&column chart -->
+    <script src="https://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/modules/exporting.js"></script>
+    <script src="https://code.highcharts.com/modules/export-data.js"></script>
+    <!-- amcharts -->
+    <script src="https://www.amcharts.com/lib/4/core.js"></script>
+    <script src="https://www.amcharts.com/lib/4/charts.js"></script>
+    <script src="https://www.amcharts.com/lib/4/plugins/forceDirected.js"></script>
+    <script src="https://www.amcharts.com/lib/4/themes/animated.js"></script>
+    <!-- 다빈 js -->
+    <script src="https://code.highcharts.com/modules/wordcloud.js"></script>
+    <!-- circle chart -->
+    <script src="https://code.highcharts.com/highcharts-3d.js"></script>
+    <!-- 예지 js -->
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
+
+    <style media="screen">
+      body {
+        background-color: #f5f5f5;
+      }
+      .in-line {
+        width: 350px;
+        height: 40px;
+      }
+      input {
+        margin: 0;
+      }
+      input[type="text"] {
+        width: 70%;
+        height: 100%;
+        border: none;
+        font-size: 1em;
+        padding-left: 5px;
+        font-style: oblique;
+        display: inline;
+        outline: none;
+        box-sizing: border-box;
+        color: black;
+      }
+      input[type="submit"] {
+        width: 30%;
+        height: 100%;
+        background-color: lightgray;
+        border: none;
+        background-color: white;
+        font-size: 1em;
+        color: #042aac;
+        outline: none;
+        display: inline;
+        margin-left: -10px;
+        box-sizing: border-box;
+      }
+      input[type="button"] {
+        width: 50%;
+        height: 100%;
+        background-color: lightgray;
+        border: none;
+        background-color: white;
+        font-size: 1em;
+        color: #042aac;
+        outline: none;
+        display: inline;
+        margin-left: -10px;
+        box-sizing: border-box;
+      }
+      input[type="submit"]:hover {
+        background-color: lightgray;
+      }
+      input[type="button"]:hover {
+        background-color: lightgray;
+      }
+      #chartdiv {
+        width: 100%;
+        height: 500px;
+      }
+      fieldset {
+        border: 0;
+      }
+      label {
+        display: block;
+        margin: 30px 0 0 0;
+      }
+      .overflow {
+        height: 200px;
+      }
+      #container,
+      #sliders {
+        min-width: 310px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      #container {
+        height: 400px;
+      }
+      #chartdiv {
+        width: 100%;
+        max-width: 100%;
+        height: 550px;
+      }
+    </style>
+    <script type="text/javascript">
+      $(function() {
+        $("#speed").selectmenu();
+
+        var chart1 =
+          "<div id='container' style='min-width: 310px; height: 400px; margin: 0 auto'  ></div>";
+        var chart2 = "<div id='container' style='height: 400px'></div>";
+
+        var chart3 =
+          '<table><tr><td>Alpha Angle</td><td><input id="alpha" type="range" min="0" max="45" value="15"/> <span id="alpha-value" class="value"></span></td></tr><tr><td>Beta Angle</td><td><input id="beta" type="range" min="-45" max="45" value="15"/>';
+        var chart3_1 =
+          '<span id="beta-value" class="value"></span></td></tr><tr><td>Depth</td><td><input id="depth" type="range" min="20" max="100" value="50"/> <span id="depth-value" class="value"></span></td></tr></table>';
+
+        var amchart = '<div id="chartdiv"></div>';
+        $.datepicker.setDefaults($.datepicker.regional["ko"]); //datepicker 한국어로 사용하기 위한 언어설정
+        $("#date").datepicker({ dateFormat: "yymmdd" });
+
+        $("#btn").click(function() {
+          var selectVal = $("#speed").val();
+
+          let flickerAPI =
+            "http://www.kobis.or.kr/kobisopenapi/webservice/rest/boxoffice/searchDailyBoxOfficeList.json?key=6624eeed975e2734c6dd329911451502&";
+          //tags=raccoon&tagmode=any&format=json&
+          $("#chart").empty();
+          var nameTemp = [];
+          var cntTemp = [];
+          var audiAcc = [];
+          var salesAmt = [];
+          var sumTemp = [[], [], [], [], [], [], [], [], [], []];
+          var salesAcc = [];
+          var openDt = [];
+          $.getJSON(
+            flickerAPI,
+            { targetDt: $("#date").val(), itemPerPage: 10 },
+            function(data, textStatus, xhr) {
+              var arr = data.boxOfficeResult.dailyBoxOfficeList;
+              // console.log(arr);
+              var text = "";
+              var rank = new Array(0);
+              var result = "";
+
+              rank = [];
+              text = "";
+
+              arr.forEach(function(element, index) {
+                text += element.movieNm + ",";
+                rank.push(element.rank);
+              });
+
+              // $("#chart").empty(); //자식요소를 다비움
+              $.each(arr, function(index, obj) {
+                nameTemp.push(arr[index].movieNm);
+                cntTemp.push(Number(arr[index].audiCnt));
+                audiAcc.push(Number(arr[index].audiAcc));
+                salesAmt.push(Number(arr[index].salesAmt));
+                sumTemp.push(nameTemp[index], Number(cntTemp[index]));
+                salesAcc.push(arr[index].salesAcc);
+                openDt.push(arr[index].openDt);
+              });
+              console.log(nameTemp);
+              console.log(selectVal);
+              console.log(sumTemp);
+
+              if (selectVal == 1) {
+                $("#chart").html(chart1);
+
+                Highcharts.chart("container", {
+                  chart: {
+                    zoomType: "xy"
+                  },
+                  title: {
+                    text: "영화 관객수"
+                  },
+                  subtitle: {
+                    text: "뿅뿅"
+                  },
+                  xAxis: [
+                    {
+                      categories: nameTemp,
+                      crosshair: true
+                    }
+                  ],
+                  yAxis: [
+                    {
+                      // Primary yAxis
+                      labels: {
+                        format: "",
+                        style: {
+                          color: Highcharts.getOptions().colors[1]
+                        }
+                      },
+                      title: {
+                        text: "누적 관객 수(백만)",
+                        style: {
+                          color: Highcharts.getOptions().colors[1]
+                        }
+                      }
+                    },
+                    {
+                      // Secondary yAxis
+                      title: {
+                        text: "당일 관객 수(천)",
+                        style: {
+                          color: Highcharts.getOptions().colors[0]
+                        }
+                      },
+                      labels: {
+                        format: "",
+                        style: {
+                          color: Highcharts.getOptions().colors[0]
+                        }
+                      },
+                      opposite: true
+                    }
+                  ],
+                  tooltip: {
+                    shared: true
+                  },
+                  legend: {
+                    layout: "vertical",
+                    align: "left",
+                    x: 120,
+                    verticalAlign: "top",
+                    y: 100,
+                    floating: true,
+                    backgroundColor:
+                      (Highcharts.theme &&
+                        Highcharts.theme.legendBackgroundColor) ||
+                      "rgba(255,255,255,0.25)"
+                  },
+                  series: [
+                    {
+                      name: "당일 관객 수",
+                      type: "column",
+                      yAxis: 1,
+                      data: cntTemp,
+                      tooltip: {
+                        valueSuffix: "명"
+                      }
+                    },
+                    {
+                      name: "누적 관객 수",
+                      type: "spline",
+                      data: audiAcc,
+                      tooltip: {
+                        valueSuffix: "명"
+                      }
+                    }
+                  ]
+                });
+              } else if (selectVal == 2) {
+                $("#chart").html(chart2);
+
+                Highcharts.chart("container", {
+                  chart: {
+                    type: "pie",
+                    options3d: {
+                      enabled: true,
+                      alpha: 45
+                    }
+                  },
+                  title: {
+                    text: "당일 관객 수"
+                  },
+                  subtitle: {
+                    text: "3D donut in Highcharts"
+                  },
+                  plotOptions: {
+                    pie: {
+                      innerSize: 100,
+                      depth: 45
+                    }
+                  },
+                  series: [
+                    {
+                      name: "Delivered amount",
+                      data: [
+                        [nameTemp[0], cntTemp[0]],
+                        [nameTemp[1], cntTemp[1]],
+                        [nameTemp[2], cntTemp[2]],
+                        [nameTemp[3], cntTemp[3]],
+                        [nameTemp[4], cntTemp[4]],
+                        [nameTemp[5], cntTemp[5]],
+                        [nameTemp[6], cntTemp[6]],
+                        [nameTemp[7], cntTemp[7]],
+                        [nameTemp[8], cntTemp[8]][(nameTemp[9], cntTemp[9])]
+                      ]
+                    }
+                  ]
+                });
+              } else if (selectVal == 3) {
+                var drawChart = function() {
+                  rankCal();
+
+                  var lines = text.split(/[,\.]+/g);
+                  var data2 = [
+                    {
+                      name: lines[0],
+                      weight: rank[0]
+                    },
+                    {
+                      name: lines[1],
+                      weight: rank[1]
+                    },
+                    {
+                      name: lines[2],
+                      weight: rank[2]
+                    },
+                    {
+                      name: lines[3],
+                      weight: rank[3]
+                    },
+                    {
+                      name: lines[4],
+                      weight: rank[4]
+                    },
+                    {
+                      name: lines[5],
+                      weight: rank[5]
+                    },
+                    {
+                      name: lines[6],
+                      weight: rank[6]
+                    },
+                    {
+                      name: lines[7],
+                      weight: rank[7]
+                    },
+                    {
+                      name: lines[8],
+                      weight: rank[8]
+                    },
+                    {
+                      name: lines[9],
+                      weight: rank[9]
+                    }
+                  ];
+                  console.log("gg");
+                  Highcharts.chart("container", {
+                    series: [
+                      {
+                        type: "wordcloud",
+                        data: data2,
+                        name: "인기도"
+                      }
+                    ],
+                    title: ""
+                  });
+                  console.log("gg");
+                };
+                var rankCal = function() {
+                  console.log("aa");
+
+                  for (var i = 0; i < 10; i++) {
+                    if (rank[i] === "10") {
+                      rank[i] = 1;
+                    } else if (rank[i] === "9") {
+                      rank[i] = 2;
+                    } else if (rank[i] === "8") {
+                      rank[i] = 3;
+                    } else if (rank[i] === "7") {
+                      rank[i] = 4;
+                    } else if (rank[i] === "6") {
+                      rank[i] = 5;
+                    } else if (rank[i] === "5") {
+                      rank[i] = 6;
+                    } else if (rank[i] === "4") {
+                      rank[i] = 7;
+                    } else if (rank[i] === "3") {
+                      rank[i] = 8;
+                    } else if (rank[i] === "2") {
+                      rank[i] = 9;
+                    } else if (rank[i] === "1") {
+                      rank[i] = 10;
+                    }
+                  }
+                };
+                $("#chart").html('<div id ="container"></div>');
+                drawChart();
+              } else if (selectVal == 4) {
+                $("#chart").html(chart1);
+                var chart = Highcharts.chart("container", {
+                  title: {
+                    text: "일별 박스오피스 순위"
+                  },
+
+                  subtitle: {
+                    text: "누적관객수"
+                  },
+
+                  xAxis: {
+                    categories: nameTemp
+                  },
+
+                  series: [
+                    {
+                      type: "column",
+                      colorByPoint: true,
+                      data: audiAcc,
+                      showInLegend: false
+                    }
+                  ]
+                });
+              } //end else if select 4
+              else if (selectVal == 5) {
+                console.log(openDt);
+
+                $("#chart").html(amchart);
+                am4core.ready(function() {
+                  // Themes begin
+                  am4core.useTheme(am4themes_animated);
+                  // Themes end
+
+                  var chart = am4core.create(
+                    "chartdiv",
+                    am4plugins_forceDirected.ForceDirectedTree
+                  );
+                  chart.legend = new am4charts.Legend();
+
+                  var networkSeries = chart.series.push(
+                    new am4plugins_forceDirected.ForceDirectedSeries()
+                  );
+
+                  networkSeries.data = [
+                    {
+                      name: "1. " + nameTemp[0],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[0]+ "명",
+                              value: 12
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[0]+ "명",
+                              value: 12
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[0] + "",
+                              value: 12
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[0]+ "원",
+                              value: 12
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[0]+ "원",
+                              value: 12
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "2. " +nameTemp[1],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[1]+ "명",
+                              value: 9
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[1]+ "명",
+                              value: 9
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[1] + "",
+                              value: 9
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[1] + " 원",
+                              value: 9
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[1]+ "원",
+                              value: 9
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "3. " +nameTemp[2],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[2]+ "명",
+                              value: 8
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[2]+ "명",
+                              value: 8
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[2] + "",
+                              value: 8
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[2]+ "원",
+                              value: 8
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[2]+ "원",
+                              value: 8
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "4. " +nameTemp[3],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[3]+ "명",
+                              value: 7
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[3]+ "명",
+                              value: 7
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[3] + "",
+                              value: 7
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[3]+ "원",
+                              value: 7
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[3]+ "원",
+                              value: 7
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "5. " +nameTemp[4],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[4]+ "명",
+                              value: 6
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[4]+ "명",
+                              value: 6
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[4] + "",
+                              value: 6
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[4]+ "원",
+                              value: 6
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[4]+ "원",
+                              value: 6
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "6. " +nameTemp[5],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[5]+ "명",
+                              value: 5
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[5]+ "명",
+                              value: 5
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[5] + "",
+                              value: 5
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[5]+ "원",
+                              value: 5
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[5]+ "원",
+                              value: 5
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "7. " +nameTemp[6],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[6]+ "명",
+                              value: 4
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[6]+ "명",
+                              value: 4
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[6] + "",
+                              value: 4
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[6]+ "원",
+                              value: 4
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[6]+ "원",
+                              value: 4
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "8. " +nameTemp[7],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[7]+ "명",
+                              value: 3
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[7]+ "명",
+                              value: 3
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[7] + "",
+                              value: 3
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[7]+ "원",
+                              value: 3
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[7]+ "원",
+                              value: 3
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    {
+                      name: "9. " +nameTemp[8],
+                      children: [
+                        {
+                          name: "관객 수",
+                          children: [
+                            {
+                              name: "당일관객 : " + cntTemp[8]  + "명",
+                              value: 2
+                            },
+                            {
+                              name: "총 관객 : " + audiAcc[8]+ "명",
+                              value: 2
+                            }
+                          ]
+                        },
+                        {
+                          name: "개봉일",
+                          children: [
+                            {
+                              name: openDt[8] + "",
+                              value: 2
+                            }
+                          ]
+                        },
+                        {
+                          name: "매출",
+                          children: [
+                            {
+                              name: "누적 매출 : " + salesAcc[8] + "원",
+                              value: 2
+                            },
+                            {
+                              name: "당일 매출 : " + salesAmt[8] + "원",
+                              value: 2
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                  ];
+
+                  networkSeries.dataFields.linkWith = "linkWith";
+                  networkSeries.dataFields.name = "name";
+                  networkSeries.dataFields.id = "name";
+                  networkSeries.dataFields.value = "value";
+                  networkSeries.dataFields.children = "children";
+
+                  networkSeries.nodes.template.tooltipText = "{name}";
+                  networkSeries.nodes.template.fillOpacity = 1;
+
+                  networkSeries.nodes.template.label.text = "{name}";
+                  networkSeries.fontSize = 10;
+                  networkSeries.maxLevels = 2;
+                  networkSeries.maxRadius = am4core.percent(6);
+                  networkSeries.manyBodyStrength = -16;
+                  networkSeries.nodes.template.label.hideOversized = true;
+                  networkSeries.nodes.template.label.truncate = true;
+                }); // end am4core.ready()
+              }
+            }
+          );
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <select name="speed" id="speed" style="width : 400px">
+      <option selected="selected" value="5">Force-directed tree(amcharts)</option>
+      <option value="1">line&column(high charts)</option>
+      <option value="2">circle(high charts)</option>
+      <option value="3">wordcloud(high charts)</option>
+      <option value="4">column(high charts)</option>
+    </select>
+
+    <div id="chart"></div>
+    <br /><br />
+
+    <div class="in-line">
+      <input type="text" name="name" value="" placeholder="yyymmdd" id="date" />
+      <input type="submit" name="name" value="JOIN" id="btn" />
+    </div>
+  </body>
+</html>
